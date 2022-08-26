@@ -6,15 +6,10 @@ import unidecode
 import h5py
 from datetime import date
 
-#open the links stored in the csv file
-with open('websites.csv') as f:
-    urls = f.readlines()
-for i,line in enumerate(urls):
-    a = line.replace('\n','')
-    urls[i] = a
+
 
 # link to check gas prices in Alabama
-url = urls[0]
+url = 'https://gasprices.aaa.com/?state=AL'
 
 # required headers
 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36'}
@@ -61,7 +56,7 @@ splited_values = np.array(splited_values)
 
 splited_values = splited_values.reshape(1,4)
 #url to retrieve temperature for Alabama
-url_temp = urls[1]
+url_temp = 'https://www.timeanddate.com/weather/usa/alabama'
 
 response_temperature = requests.get(url_temp,headers)
 
@@ -78,7 +73,8 @@ regex_temp = [float(a) for a in regex_temp]
 regex_temp = np.array(regex_temp)
 
 #url to retrieve daily milk powder price
-url_milk = urls[2]
+url_milk = 'https://www.dailydairyreport.com/'
+
 
 response_milk = requests.get(url_milk,headers)
 

@@ -1,3 +1,13 @@
 https://gasprices.aaa.com/?state=AL
+
+Website to be scraped in order to get the gas prices
+on a certain day in the state of Alabama
+
 https://www.timeanddate.com/weather/usa/alabama
+
+Website that displays the temperature for Alabama on
+a given day which can be scraped
+
 https://www.dailydairyreport.com/
+
+Displays the price of Milk and other dairy derivatives
