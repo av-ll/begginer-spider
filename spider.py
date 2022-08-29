@@ -1,3 +1,4 @@
+#!/usr/local/Caskroom/miniconda/base/bin/python3
 from bs4 import BeautifulSoup
 import requests
 import re
@@ -6,6 +7,9 @@ import unidecode
 import h5py
 from datetime import date
 
+
+
+date_today = np.array([date.today().strftime('%Y/%m/%d')])
 
 
 # link to check gas prices in Alabama
@@ -34,7 +38,6 @@ text_feature = [a.getText() for a in table_feature]
 
 text_feature.remove('')
 
-
 #use a regular expression to find values that correspond
 #to amounts in dollars $
 regex = re.compile('^\$')
@@ -54,9 +57,15 @@ splited_values = [float(a) for a in splited_values]
 
 splited_values = np.array(splited_values)
 
-splited_values = splited_values.reshape(1,4)
+final_gas = splited_values.reshape(1,4)
+
+
+
+
+
+
 #url to retrieve temperature for Alabama
-url_temp = 'https://www.timeanddate.com/weather/usa/alabama'
+url_temp = 'https://www.timeanddate.com/weather/usa/montgomery'
 
 response_temperature = requests.get(url_temp,headers)
 
@@ -72,6 +81,31 @@ regex_temp = re.findall('\d+',temperature)
 regex_temp = [float(a) for a in regex_temp]
 regex_temp = np.array(regex_temp)
 
+temp_humd = temp_soup.find_all('tr')
+
+humidity = [x for x in temp_humd if 'Humidity' in str(x)]
+
+humidity_reg = [re.findall('\d+',str(x)) for x in humidity]
+
+humidity_reg = [humidity_reg[0][0],humidity_reg[1][0],humidity_reg[1][1]]
+
+humidity_reg = np.array(humidity_reg,dtype='float')
+
+
+
+range_temp = temp_soup.find_all('span')
+range_temp = [x for x in range_temp if 'Forecast' in str(x)]
+
+range_temp =  np.array(re.findall('\d+',str(range_temp)),dtype='float')
+
+final_weather = np.concatenate((regex_temp,range_temp,humidity_reg))
+
+final_weather = final_weather.reshape(1,6)
+
+keys = np.array(('Temperature_now','T_max','T_min','Humidity_now','H_max','H_min'))
+
+
+
 #url to retrieve daily milk powder price
 url_milk = 'https://www.dailydairyreport.com/'
 
@@ -80,44 +114,41 @@ response_milk = requests.get(url_milk,headers)
 
 milk_soup = BeautifulSoup(response_milk.content)
 
-milk_tables = milk_soup.find_all('tr')
+milk_tables = milk_soup.find_all('td')
 
-milk_tables_data = [a.find_all('td') for a in milk_tables]
+milk_keys = ['Butter','Cheddar Block','Cheddar Barrel','Powder Milk','Dry Whey']
 
+milk_info = [x for x in milk_tables if 'Final' in str(x)]
+#milk_tables_data = [a.find_all('td') for a in milk_tables]
 
-milk_data = milk_tables_data[4]
+milk_info = milk_info[:5]
 
-milk_data_value = str(milk_data[1])
+milk_data = [re.findall('\d+\.\d+',str(x)) for x in milk_info]
 
-milk_data_value
-
-milk_data = re.findall('\d+\.\d+',milk_data_value)
-
-milk_data = [float(a) for a in milk_data]
-
-milk_data = np.array(milk_data)
+final_milk = np.array(milk_data,dtype=float).reshape(1,5)
 
 
 #append the retrieved data to the hdf5
 file = h5py.File('data.h5','a')
 
-file['temperature'].resize((file['temperature'].shape[0]+regex_temp.shape[0]), axis=0)
 
-file['temperature'][-regex_temp.shape[0]:] = regex_temp
 
-file['milk_price'].resize((file['milk_price'].shape[0]+milk_data.shape[0]), axis=0)
+file['websites/temperature'].resize((file['websites/temperature'].shape[0]+final_weather.shape[0]), axis=0)
 
-file['milk_price'][-milk_data.shape[0]:] = milk_data
+file['websites/temperature'][-final_weather.shape[0]:] = final_weather
 
-file['gas_prices'].resize((file['gas_prices'].shape[0]+splited_values.shape[0]), axis=0)
+file['websites/milk_price'].resize((file['websites/milk_price'].shape[0]+final_milk.shape[0]), axis=0)
 
-file['gas_prices'][-splited_values.shape[0]:] = splited_values
+file['websites/milk_price'][-final_milk.shape[0]:] = final_milk
 
-date_today = np.array([date.today().strftime("%Y/%m/%d")])
+file['websites/gas_prices'].resize((file['websites/gas_prices'].shape[0]+final_gas.shape[0]), axis=0)
 
-file['date'].resize((file['date'].shape[0]+date_today.shape[0]), axis=0)
+file['websites/gas_prices'][-final_gas.shape[0]:] = final_gas
 
-file['date'][-date_today.shape[0]:] = date_today
+
+file['websites/date'].resize((file['websites/date'].shape[0]+date_today.shape[0]), axis=0)
+
+file['websites/date'][-date_today.shape[0]:] = date_today
 
 
 file.close()
